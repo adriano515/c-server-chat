@@ -41,6 +41,7 @@ typedef struct client{
 	int status;
 	int fd;
 	char *ip;
+	char *user;
 	
 } client;
 
@@ -49,6 +50,8 @@ fd_set master;
 fd_set read_fds;
 int fdmax;
 int listener;
+
+
 
 int sendMsg(int csocket, char *buf, int *len ){
 
@@ -91,16 +94,80 @@ void errorReg(char user[], char ip[INET_ADDRSTRLEN], int fd){
 }
 
 void getUsrInfo(char user[], char usrAsk[]){
-	
+	//call 
 
 }
-void getUsers(char user[]){
+
+int concat_clients(void* clients_list, void* data){
+
+	char *cl = (char *)clients_list;
+	data_struct_t *item = (data_struct_t *) data;
+
+	strcat(cl, "|");
+	strcat(cl, ((client*) item->client)->user);	
+
+	strcat(cl, "+");
+	int i = ((client*) item->client)->status;
+	char c[30];
+	sprintf(c, "%d", i);
+ 	
+	strcat(cl, c);
+
+	return 0;
+
+}
+
+void getUserList(char user[], int fd){
+
+	
+	char *clients_list = malloc(sizeof(1024));
+	int (*concat_clients_ptr)(void *, void*);
+	concat_clients_ptr = &concat_clients;
+
+	hashmap_iterate(map, concat_clients_ptr, clients_list);
+	
 	
 
+	char msg[1024] = "07|";
+	
+	strcat(msg, user);
+	strcat(msg, "|");
+	strcat(msg, clients_list);
+	int len = strlen(msg);
+	if(sendMsg(fd, msg, &len) == -1){
+		perror("send");	
+	}
+	return;
+	
+	//free(clients_list);
+	return;
+	
+}
+
+void getUsers(char user[], int fd){
+	
+	printf("User '%s' requested list status\n", user);
+	fflush(stdout);
+	getUserList(user, fd);
+	
 }
 
 void changeStat(char user[], int status){
-	
+	data_struct_t* value;
+	value = malloc(sizeof(data_struct_t));
+	client *cl = malloc(sizeof(client));
+
+	if(hashmap_get(map, user, (void**)(&value)) == 0 ){
+		cl = value->client;		
+		cl->status = status;
+
+		printf("User '%s' changed status '%d' to  '%d' \n", user, cl->status, status);	
+		fflush(stdout);
+	}
+	else{
+		printf("Error changing status of '%s', desired status is '%d' \n", user, status);
+		fflush(stdout);	
+	}	
 }
 
 void dcUser(char user[], int fd){
@@ -112,16 +179,29 @@ void dcUser(char user[], int fd){
 			
 		if(hashmap_remove(map, user) != 0 ){
 			printf("There was an issue removing '%s' from hashmap \n", user);
-			fflush(stdout);		
+			fflush(stdout);	
+			if (FD_ISSET(fd, &read_fds)){	
+				
+				FD_CLR(fd, &read_fds);
+				
+			}
+			
 			close(fd);
 			FD_CLR(fd, &master);
 			pthread_exit(NULL);	
 		}
 		else{
 			printf("Succesfully removed '%s' from server list", user);		
-			fflush(stdout);			
+			fflush(stdout);	
+			if (FD_ISSET(fd, &read_fds)){	
+				
+				FD_CLR(fd, &read_fds);
+				
+			}
+					
 			close(fd);
 			FD_CLR(fd, &master);
+			FD_CLR(fd, &read_fds); 
 			pthread_exit(NULL);	
 		}	
 		
@@ -129,38 +209,54 @@ void dcUser(char user[], int fd){
 	}else{
 		printf("User '%s' was not found in hashmap \n", user);	
 		fflush(stdout);
+		if (FD_ISSET(fd, &read_fds)){	
+				
+				FD_CLR(fd, &read_fds);
+				
+			}
+			
 		close(fd);
 		FD_CLR(fd, &master);
 		pthread_exit(NULL);	
 	}
+	free(value);
 
 }
 
 void regUser(char user[], char ip[INET_ADDRSTRLEN], int port, int status, int fd){
 	
+	
 	int error;
 	data_struct_t* value;
+	data_struct_t* get_value;
 	char key_string[KEY_MAX_LENGTH];
 	
 	client *cl = malloc(sizeof(client));
 
 	value = malloc(sizeof(data_struct_t));
+	get_value = malloc(sizeof(data_struct_t));
 	snprintf(value->key_string, KEY_MAX_LENGTH, "%s", user);
 	
 	cl->ip = ip;
 	cl->port = port;
 	cl->status = status;
 	cl->fd = fd;
+	cl->user = user;
 	value->client = (void*)cl;	
+
 	
-	if((hashmap_length(map) >= 1) && hashmap_get(map, value->key_string, (void**)(&value)) != 0){
-		if(hashmap_put(map, value->key_string, value) == 0){
 		
+
+	if((hashmap_length(map) >= 1) && hashmap_get(map, value->key_string, (void**)(&get_value)) != 0){
+		
+		if(hashmap_put(map, value->key_string, value) == 0){
+			
 			printf("user '%s' with number '%d' registered \n", value->key_string,hashmap_length(map));
 			fflush(stdout);
 			
 		}
 		else{
+			
 			printf("Error registering user '%s'\n", value->key_string);
 			fflush(stdout);
 			errorReg(value->key_string, cl->ip, fd);
@@ -309,7 +405,7 @@ void handleRequest(int protocol, char msge[], int fd){
 			while ((token = strtok(NULL, delim)) != NULL){
 				
 				char *params6 = (char*)token;
-				getUsers(params6);
+				getUsers(params6, fd);
 			}
 			return;
 		case 7 :
@@ -542,7 +638,7 @@ int main(int argc, char *argv[])
     
     if (p == NULL) {
     	fprintf(stderr,"server: failed to bind\n");
-	exit(1);
+		exit(1);
     }
 
     freeaddrinfo(result); 
