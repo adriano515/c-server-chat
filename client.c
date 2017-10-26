@@ -12,9 +12,27 @@
 
 int sockfd = 0;
 char s[INET_ADDRSTRLEN];
+char user[30];
+
 
 void usrMsg(char msg[]){
 	
+}
+
+void InformacionUsuario(){
+	char *msg;
+	int msglen;
+	char *userInformation;
+	printf("Insert user to ask information");
+	scanf("\%s",&userInformation);
+	msg = "04|";
+	strcat(msg,userInformation);
+	strcat(msg,"|");
+	strcat(msg,user);
+	msglen = strlen(msg);
+	if( sendMsg(sockfd, msg, &msglen) == -1){
+		perror("Error in protocol 04 InformacionUsuario");					 
+	}
 }
 
 void handleResponse(int protocol, char msge[]){
@@ -121,7 +139,7 @@ void handleResponse(int protocol, char msge[]){
 			return;
 		default : 
 			//MSG FROM USER
-			userMsg(msg);
+			usrMsg(msg);
 			return;	
 	}
 
@@ -186,14 +204,29 @@ int sendMsg(int csocket, char *buf, int *len){
 	}
 }
 
+void CambiarEstado(char *estado, char *actividad){
+	char *msg;
+	int msglen;
+	msg = "03|";
+	strcat(msg,user);
+	strcat(msg,"|");
+	strcat(msg,estado);
+	msglen = strlen(msg);
+	if( sendMsg(sockfd, msg, &msglen) == -1){
+		printf("Error %s", actividad);
+		perror("Error");					 
+	}
+	return;
+}
+
 int cliente(int argc, char *argv[]){
 	int status = 0, msglen;
     char recvBuff[1024] = " ";
-    char msg[1024];
+    char *msg;
     
     struct addrinfo serverinfo, *result, *p;
     
-
+	CambiarEstado("0","Activo");
     if(argc != 3)
     {
         printf("\n Usage: %s <ip of server> <port of server>\n",argv[0]);
@@ -254,11 +287,17 @@ int cliente(int argc, char *argv[]){
 			return 1;
 		}
 
+		char *userToSend;
+		printf("Enter user to send message : ");
+	    	scanf("%s" , userToSend);
 	    
 		printf("Enter message : ");
-	    scanf("%s" , msg);
-		if(strcmp(msg,"exit"){
-			printf("se ha salido de la opcion de chat");
+	    	scanf("%s" , msg);
+		
+		
+		
+		if(strcmp(msg,"exit")){
+			printf("you are out of the chat");
 			break;
 		}
 	    msglen = strlen(msg);
@@ -269,12 +308,12 @@ int cliente(int argc, char *argv[]){
 	    }
 	}	    
     close(sockfd);
-
+	CambiarEstado("2","Away");
     return;
 }
 
 void Ayuda(void){
-	printf("\n  Aqui tendremos la ayuda");	
+	printf("\n  here is the help");	
 	return;
 }
 
@@ -298,15 +337,16 @@ void ListarUsuarios(void){
 	return;
 }
 
-void Menu(int argc, char *argv[]){
+void Menu(int argc, char *argv[], int sockfd){
 	int opcion;
 	do{
-		printf("\n  1. Chatear");
-		printf("\n  2. Cambiar de Estado");
-		printf("\n  3. Listar Usuarios");
-		printf("\n  4. Ayuda");
-		printf("\n  5. Salir");
-		printf("\n  Elegir un opcion (1-4)", 162);
+		printf("\n  1. Chat");
+		printf("\n  2. Change State");
+		printf("\n  3. Users List");
+		printf("\n  4. HELP");
+		printf("\n  5. Ask for users information");
+		printf("\n  6. End");
+		printf("\n  Choose an option (1-6)", 162);
 		scanf("\%d", &opcion);
 	switch(opcion){
 		case 1:cliente(argc,argv);
@@ -317,14 +357,28 @@ void Menu(int argc, char *argv[]){
 		break;
 		case 4:Ayuda();
 		break;
+		case 5:printf("\n Hola");
+		break;
 		}
 	}
-	while(opcion!=5);
+	while(opcion!=6);
+	char *msg;
+	int msglen;
+	msg = "02|";
+	strcat(msg,user);
+	msglen = strlen(msg);
+	if( sendMsg(sockfd, msg, &msglen) == -1){
+		perror("Error in close");					 
+	}
 	return;
 }
 
 int main(int argc, char*argv[]){
-	Menu(argc,argv);
+	printf("Insert user: ");
+	scanf("\%s",&user);
+	//enviar sockfd
+	int sockfd=0;
+	Menu(argc,argv,sockfd);
 	return 0;
 }
 
