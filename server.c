@@ -313,7 +313,7 @@ void regUser(char user[], char ip[INET_ADDRSTRLEN], int port, int status, int fd
 		
 		if(hashmap_put(map, value->key_string, value) == 0){
 			
-			printf("user '%s' with number '%d' registered \n", value->key_string,hashmap_length(map));
+			printf("user '%s' with number '%d' and status '%d' registered \n", value->key_string,hashmap_length(map),cl->status);
 			fflush(stdout);
 			
 		}
@@ -327,7 +327,7 @@ void regUser(char user[], char ip[INET_ADDRSTRLEN], int port, int status, int fd
 	else if(hashmap_length(map) == 0){
 		if(hashmap_put(map, value->key_string, value) == 0){
 		
-			printf("user '%s' with number '%d' registered \n", value->key_string,hashmap_length(map));
+			printf("user '%s' with number '%d' and status %d registered\n", value->key_string,hashmap_length(map), cl->status);
 			fflush(stdout);
 			
 		}
@@ -489,7 +489,7 @@ void handleRequest(int protocol, char msge[], int fd){
 			usrMsg(params8[0], params8[1], params8[2]);
 			return;
 		default : 
-			printf("Invalid protocol %d", protocol);
+			printf("Invalid protocol %d \n", protocol);
 			return;	
 	}
 

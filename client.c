@@ -33,7 +33,8 @@ char* scanInput(){
 }
 
 void usrMsg(char msg[]){
-	
+	printf(msg);
+	fflush(stdout);
 }
 
 void CambiarEstado(char *estado, char *actividad){
@@ -44,7 +45,7 @@ void CambiarEstado(char *estado, char *actividad){
 	strcat(msg,"|");
 	strcat(msg,estado);
 	msglen = strlen(msg);
-	if( sendMsg(sockfd, msg, &msglen) == -1){
+	if( sendMsg( msg, &msglen) == -1){
 		printf("Error %s", actividad);
 		perror("Error");				 
 	}
@@ -59,9 +60,12 @@ void *timeOut(){
 	for(;;){
 		if((t=clock())>=ts){
 			++seconds;
+			
 			if(seconds==30){
+				
 				CambiarEstado("1","Idle");
-			}		
+			}	
+			ts = t + CLOCKS_PER_SEC;	
 		}
 	}
 	
@@ -73,12 +77,12 @@ void InformacionUsuario(){
 	int msglen;
 	char *userInformation;
 	printf("Insert user to ask information");
-	userInformation = 
+	userInformation = scanInput();
 	strcat(msg,userInformation);
 	strcat(msg,"|");
 	strcat(msg,user);
 	msglen = strlen(msg);
-	if( sendMsg(sockfd, msg, &msglen) == -1){
+	if( sendMsg( msg, &msglen) == -1){
 		perror("Error in protocol 04 InformacionUsuario");					 
 	}
 }
@@ -176,7 +180,7 @@ void handleResponse(int protocol, char msge[]){
 				i ++;
 			}
 			printf("La lista de usuarios es '%s'", params7[1]);
-
+			fflush(stdout);
 			return;
 		case 8:
 			/*
@@ -221,7 +225,7 @@ void *readServer(void *arg){
 	int protocol;
 
 	while(1){
-		
+		memset(recvBuff, 0, sizeof recvBuff);
 		if( nbytes = recv(sockfd, recvBuff, sizeof(recvBuff)-1, 0) == -1){
 			perror ("Error receiving msg");
 			exit(1);
@@ -229,19 +233,24 @@ void *readServer(void *arg){
 		else if(nbytes == 0){
 			perror ("Remote host closed connection");
 		}
+		else{
+			printf("Recived message '%s'", recvBuff);		
+		}
 		printf("client:received %s\n", recvBuff);
+		fflush(stdout);
 		protocol = getProt(recvBuff);
 		handleResponse(protocol, recvBuff);
 	}
 }
 
-int sendMsg(int csocket, char *buf, int *len){
+int sendMsg( char *buf, int *len){
 	int total = 0;
 	int bytesleft = *len;
 	int n;
 	while(total<*len){
-		n = send(csocket, buf+ total, bytesleft, 0);
+		n = send(sockfd, buf+ total, bytesleft, 0);
 		if(n==-1){
+			printf("Error sending message", buf);
 			break;		
 		}	
 	*len = total;
@@ -250,42 +259,42 @@ int sendMsg(int csocket, char *buf, int *len){
 }
 
 int cliente(int argc, char *argv[]){
-	char *msg;
-	char recvBuff[1024] = " ";
+	char msg[1024] = "08|";
+	strcat(msg, user);
+	strcat(msg, "|");
+	char *msg2;
+	
 	int msglen;
     while(1){
-		memset(recvBuff, 0, sizeof recvBuff);
-	    
-		//revisar el print de abajo, siempre esta devolviendo 2.0.0.0 tiene que ver con la struct de p
-
-		pthread_t read_thread;					
-		
-		if(pthread_create( &read_thread, NULL, readServer, &sockfd) < 0){
-			perror("Could not create thread");
-			return 1;
-		}
-
-		
+			
 		//cambiar estado a activo
 		char *userToSend;
 		printf("Enter user to send message : ");
-		scanf("%s", userToSend);
+		userToSend = scanInput();
 	   
-	    	
+	    	strcat(msg, userToSend);
+		strcat(msg, "|");
+			
+		
 		pthread_t timeout;
 		pthread_create(&timeout,NULL,timeOut,NULL);
-
-		printf("Enter message : ");
-	    msg = scanInput();
 		
+		fprintf(stdout, "Enter message : ");
+		msg2 = scanInput();
+	    	//scanf("%s", msg);
+	   
+		strcat(msg, msg2);
+				
 		pthread_cancel(timeout);
 		
-		if(strcmp(msg,"exit")){
+		/*if(strcmp(msg,"exit")){
+			fprintf(stdout, msg);
 			printf("you are out of the chat");
 			break;
-		}
+		}*/
+		
 	    msglen = strlen(msg);
-	    if( sendMsg(sockfd, msg, &msglen) == -1){
+	    if( sendMsg(msg, &msglen) == -1){
 	    	perror("send");
 			printf("Only %d bytes were sent due to error \n", msglen);
 								 
@@ -302,6 +311,9 @@ void Ayuda(void){
 }
 
 void ListarUsuarios(void){
+	char msg[1024] = "06|";
+	int msglen;
+/*
 	char* token;
 	char* token2;
 	char* string;
@@ -317,13 +329,21 @@ void ListarUsuarios(void){
 		printf("\n******************");	
 		}	
 	
-	}
+	}*/
+	strcat(msg, user);
+	
+	msglen = strlen(msg);
+   	if( sendMsg( msg, &msglen) == -1){
+    		perror("send");
+		printf("Only %d bytes were sent due to error \n", msglen);							 
+	}	
+	
 	return;
 }
 
 void Menu(int argc, char *argv[]){
 	int opcion;
-	
+	char *option;
 	do{	
 		
 		printf("\n  1. Chat");
@@ -333,7 +353,8 @@ void Menu(int argc, char *argv[]){
 		printf("\n  5. Ask for users information");
 		printf("\n  6. End");
 		printf("\n  Choose an option (1-6)", 162);
-		scanf("\%d", &opcion);
+		opcion = atoi(scanInput());
+		
 	switch(opcion){
 		case 1:cliente(argc,argv);
 		break;
@@ -352,7 +373,7 @@ void Menu(int argc, char *argv[]){
 	int msglen;
 	strcat(msg,user);
 	msglen = strlen(msg);
-	if( sendMsg(sockfd, msg, &msglen) == -1){
+	if( sendMsg( msg, &msglen) == -1){
 		perror("Error in close");					 
 	}
 	return;
@@ -412,15 +433,14 @@ int main(int argc, char*argv[]){
 
 	inet_ntop(p->ai_family, &(ipv4->sin_addr), s, sizeof s);
 	printf("client: connecting to %s\n",s);
-	
-	strcat(msg, user);
-	strcat(msg, "|192.168.0.1|1100|2");
-	
-	msglen = strlen(msg);
-    if( sendMsg(sockfd, msg, &msglen) == -1){
-    	perror("send");
-		printf("Only %d bytes were sent due to error \n", msglen);							 
-	}	
+
+	pthread_t read_thread;					
+
+	if(pthread_create( &read_thread, NULL, readServer, &sockfd) < 0){
+		perror("Could not create thread");
+		return 1;
+	}
+
 
 	Menu(argc,argv);
 	return 0;
