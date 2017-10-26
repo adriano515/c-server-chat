@@ -55,26 +55,63 @@ int listener;
 
 int sendMsg(int csocket, char *buf, int *len ){
 
-	
 	int total = 0;
 	int bytesleft = *len;
 	int n;
 	while (total < *len) {
-		n = send(csocket, buf + total, bytesleft, 0);
-		if (n == -1) {
-			break;
+		
+		if (FD_ISSET(csocket, &master)){
+			if (csocket != listener && csocket != 1){
+				n = send(csocket, buf + total, bytesleft, 0);
+				if (n == -1) {
+					perror("send");
+					break;
+				}
+				total += n;
+				bytesleft -= n;
+
+			}
 		}
-		total += n;
-		bytesleft -= n;
+
+		
 	}
 	
 	*len = total;
 	return n == -1?-1:0; //return -1 on fail, 0 on success
 }
 
-void usrMsg(char sender[], char target[], char msg[]){
-	
+void usrMsg(char sender[], char target[], char msge[]){
 
+	printf("User '%s', is sending a msg to '%s'\n", sender, target);
+		
+	data_struct_t* value;
+	value = malloc(sizeof(data_struct_t));
+	client *cl = malloc(sizeof(client));
+	int fd;
+
+	char msg[1024];
+	
+	strcat(msg, sender);
+	strcat(msg, " says: ");
+	strcat(msg, msge);
+			
+
+	if(hashmap_get(map, target, (void**)(&value)) == 0 ){
+		cl = value->client;		
+		fd = cl->fd;
+		
+		int len = strlen(msg);
+		if(sendMsg(fd, msg, &len) == -1){
+			perror("send");	
+		}
+
+		printf("User '%s' sent '%s' to '%s'\n", sender, msge, target);
+		fflush(stdout);	
+	}
+	else{
+		printf("Error sending msg: '%s' from '%s' to '%s'\n", sender, msg, target);
+		fflush(stdout);	
+	}	
 }
 
 
@@ -413,15 +450,8 @@ void handleRequest(int protocol, char msge[], int fd){
 
 			[Retorno de listado {servidor a cliente}]
 				07|usuarioQuePide|usuario1+estado1&usuario2+estado2...usuarioN+estadoN¬
-				TODO FUNCTION TO GET USERS+STATES
 			*/
-			i = 0;
-			char *params7[2]; 
-			while ((token = strtok(NULL, delim)) != NULL){
-				
-				params7[i] = token;
-				i ++;
-			}
+			
 			return;
 		case 8:
 			/*
@@ -474,7 +504,7 @@ void *connection_handler( void *arg){
 	int sockFD = *(int*)arg;
 
 	int cbuff;
-	char buf [256] = " ";
+	char buf [1024] = " ";
 	
 	int accept = 1;
 
@@ -496,18 +526,6 @@ void *connection_handler( void *arg){
 				else{	
 						
 					handleRequest(getProt(buf), buf, sockFD);	
-											
-					int i;
-					for(i = 0; i <= fdmax; i++){
-						if (FD_ISSET(i, &master)){
-							if (i != listener && i != 1){
-								if (sendMsg(i, buf, &cbuff) == -1) {
-									perror("send");
-									fflush(stdout);
-								}
-							}
-						}
-					}
 								
 				}
 			}else{
@@ -529,63 +547,7 @@ int main(int argc, char *argv[])
 {
 
 	map = hashmap_new();
-/*
 
-	for (index = 0; index < KEY_COUNT; index += 1){
-		value = malloc(sizeof(data_struct_t));
-		snprintf(value->key_string, KEY_MAX_LENGTH, "%s%d", KEY_PREFIX, index);
-		
-		value-> number = index;
-		printf("string is %s\n", value->key_string);
-		error = hashmap_put(mymap, value->key_string, value);
-		assert(error == MAP_OK);	
-	} 
-
-	
-	
-	// Now, check all of the expected values are there 
-
-	for (index=0; index<KEY_COUNT; index+=1){
-		snprintf(key_string, KEY_MAX_LENGTH, "%s%d", KEY_PREFIX, index);
-	
-		error = hashmap_get(mymap, key_string, (void**)(&value));
-	
-		// Make sure the value was both found and the correct number 
-		assert(error==MAP_OK);
-		assert(value->number==index);
-	}
-	
-	// Make sure that a value that wasn't in the map can't be found 
-	
-	snprintf(key_string, KEY_MAX_LENGTH, "%s%d", KEY_PREFIX, KEY_COUNT);
-	
-	error = hashmap_get(mymap, key_string, (void**)(&value));
-	
-	// Make sure the value was not found 
-	
-	assert(error==MAP_MISSING);
-	
-	// Free all of the values we allocated and remove them from the map 
-	
-	for (index=0; index<KEY_COUNT; index+=1){
-		snprintf(key_string, KEY_MAX_LENGTH, "%s%d", KEY_PREFIX, index);
-	
-		error = hashmap_get(mymap, key_string, (void**)(&value));
-		assert(error==MAP_OK);
-	
-		error = hashmap_remove(mymap, key_string);
-		assert(error==MAP_OK);
-	
-		free(value);
-	}
-	
-	// Now, destroy the map 
-	hashmap_free(mymap);
-
-*/
-
-    
-    
     listener = 0;
 
 	int connfd = 0;
@@ -597,7 +559,7 @@ int main(int argc, char *argv[])
     struct addrinfo servinfo, *result, *p; 
     struct sockaddr_storage client_addr;
     struct sockaddr *addr;
-    char s[INET_ADDRSTRLEN],buf [256] = " ";
+    char s[INET_ADDRSTRLEN],buf [1024] = " ";
     
     socklen_t addr_size;
 
