@@ -131,7 +131,28 @@ void errorReg(char user[], char ip[INET_ADDRSTRLEN], int fd){
 }
 
 void getUsrInfo(char user[], char usrAsk[]){
-	//call 
+	data_struct_t* value;
+	value = malloc(sizeof(data_struct_t));
+	client *cl = malloc(sizeof(client));
+	if(hashmap_get(map, user, (void**)(&value)) == 0 ){
+		char msg[1024] = "05|";
+		strcat(msg, cl->user);
+		strcat(msg, "|");
+		strcat(msg, cl->ip);
+		strcat(msg, "|");
+		char port[30];
+		sprintf(port,"%d",cl->port);
+		strcat(msg, port);
+		strcat(msg, "|");
+		char status[30];
+		sprintf(status,"%d",cl->status);
+		strcat(msg, status);
+		int len = strlen(msg);
+		if(sendMsg(fd, msg, &len) == -1){
+			perror("send");	
+		}
+		return;
+	}
 
 }
 
@@ -416,7 +437,8 @@ void handleRequest(int protocol, char msge[], int fd){
 				params4[i] = token;
 				i ++;
 			}
-			getUsrInfo(params4[0], params4[1]);
+			printf("Message received on protocol 04");
+			getUsrInfo(params4[0], params4[1],fd);
 			return;
 		case 5 :
 			/*			
@@ -430,6 +452,7 @@ void handleRequest(int protocol, char msge[], int fd){
 				params5[i] = token;
 				i ++;
 			}
+			getUsrInfo(params4[0], params4[1],fd);
 			return;
 		case 6 :
 			/*

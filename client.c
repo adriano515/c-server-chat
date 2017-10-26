@@ -12,29 +12,10 @@
 
 int sockfd = 0;
 char s[INET_ADDRSTRLEN];
-   
-int sendMsg(int csocket, char *buf, int *len ){
-
-	int total = 0;
-	int bytesleft = *len;
-	int n;
-	while (total < *len) {
-		n = send(csocket, buf + total, bytesleft, 0);
-		if (n == -1) {
-			break;
-		}
-		total += n;
-		bytesleft -= n;
-	}
-	
-	*len = total;
-	return n == -1?-1:0; //return -1 on fail, 0 on success
-}
 
 void usrMsg(char msg[]){
 	
 }
-
 
 void handleResponse(int protocol, char msge[]){
 	
@@ -191,11 +172,22 @@ void *readServer(void *arg){
 	}
 }
 
+int sendMsg(int csocket, char *buf, int *len){
+	int total = 0;
+	int bytesleft = *len;
+	int n;
+	while(total<*len){
+		n = send(csocket, buf+ total, bytesleft, 0);
+		if(n==-1){
+			break;		
+		}	
+	*len = total;
+	return n == -1?-1:0;
+	}
+}
 
-
-int main(int argc, char *argv[])
-{
-    int status = 0, msglen;
+int cliente(int argc, char *argv[]){
+	int status = 0, msglen;
     char recvBuff[1024] = " ";
     char msg[1024];
     
@@ -265,7 +257,10 @@ int main(int argc, char *argv[])
 	    
 		printf("Enter message : ");
 	    scanf("%s" , msg);
-	
+		if(strcmp(msg,"exit"){
+			printf("se ha salido de la opcion de chat");
+			break;
+		}
 	    msglen = strlen(msg);
 	    if( sendMsg(sockfd, msg, &msglen) == -1){
 	    	perror("send");
@@ -275,5 +270,62 @@ int main(int argc, char *argv[])
 	}	    
     close(sockfd);
 
-    return 0;
+    return;
 }
+
+void Ayuda(void){
+	printf("\n  Aqui tendremos la ayuda");	
+	return;
+}
+
+void ListarUsuarios(void){
+	char* token;
+	char* token2;
+	char* string;
+	char* tofree;
+	string = strdup("usuario1+estado1&usuario2+estado2&usuarioN+estadoN");
+	if(string!=NULL){
+		tofree = string;
+		while((token=strsep(&string,"&"))){
+		printf("\n******************\n");
+			while((token2=strsep(&token,"+"))){
+				printf("%s \n", token2);		
+			}	
+		printf("\n******************");	
+		}	
+	
+	}
+	return;
+}
+
+void Menu(int argc, char *argv[]){
+	int opcion;
+	do{
+		printf("\n  1. Chatear");
+		printf("\n  2. Cambiar de Estado");
+		printf("\n  3. Listar Usuarios");
+		printf("\n  4. Ayuda");
+		printf("\n  5. Salir");
+		printf("\n  Elegir un opcion (1-4)", 162);
+		scanf("\%d", &opcion);
+	switch(opcion){
+		case 1:cliente(argc,argv);
+		break;
+		case 2:printf("\n  funcion2");
+		break;
+		case 3:ListarUsuarios();
+		break;
+		case 4:Ayuda();
+		break;
+		}
+	}
+	while(opcion!=5);
+	return;
+}
+
+int main(int argc, char*argv[]){
+	Menu(argc,argv);
+	return 0;
+}
+
+
