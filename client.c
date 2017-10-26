@@ -9,6 +9,7 @@
 #include <errno.h>
 #include <arpa/inet.h> 
 #include <pthread.h>
+#include <time.h>
 
 int sockfd = 0;
 char s[INET_ADDRSTRLEN];
@@ -17,6 +18,35 @@ char user[30];
 
 void usrMsg(char msg[]){
 	
+}
+
+void CambiarEstado(char *estado, char *actividad){
+	char *msg;
+	int msglen;
+	msg = "03|";
+	strcat(msg,user);
+	strcat(msg,"|");
+	strcat(msg,estado);
+	msglen = strlen(msg);
+	if( sendMsg(sockfd, msg, &msglen) == -1){
+		printf("Error %s", actividad);
+		perror("Error");					 
+	}
+	return;
+}
+
+void *timeOut(){
+	clock_t t,ts;
+	int seconds =0;
+	for(;;){
+		if((t=clock())>=ts){
+			++seconds;
+			if(seconds==30){
+				CambiarEstado("1","Idle");
+			}		
+		}
+	}
+	return;
 }
 
 void InformacionUsuario(){
@@ -204,29 +234,13 @@ int sendMsg(int csocket, char *buf, int *len){
 	}
 }
 
-void CambiarEstado(char *estado, char *actividad){
-	char *msg;
-	int msglen;
-	msg = "03|";
-	strcat(msg,user);
-	strcat(msg,"|");
-	strcat(msg,estado);
-	msglen = strlen(msg);
-	if( sendMsg(sockfd, msg, &msglen) == -1){
-		printf("Error %s", actividad);
-		perror("Error");					 
-	}
-	return;
-}
-
 int cliente(int argc, char *argv[]){
 	int status = 0, msglen;
     char recvBuff[1024] = " ";
     char *msg;
     
     struct addrinfo serverinfo, *result, *p;
-    
-	CambiarEstado("0","Activo");
+	
     if(argc != 3)
     {
         printf("\n Usage: %s <ip of server> <port of server>\n",argv[0]);
@@ -274,7 +288,7 @@ int cliente(int argc, char *argv[]){
     	perror("send");
 		printf("Only %d bytes were sent due to error \n", msglen);							 
 	}
-
+	
     while(1){
 		memset(recvBuff, 0, sizeof recvBuff);
 	    
@@ -287,14 +301,19 @@ int cliente(int argc, char *argv[]){
 			return 1;
 		}
 
+		
+		//cambiar estado a activo
 		char *userToSend;
 		printf("Enter user to send message : ");
 	    	scanf("%s" , userToSend);
-	    
+	    	
+		pthread_t timeout;
+		pthread_create(&timeout,NULL,timeOut,NULL);
+
 		printf("Enter message : ");
 	    	scanf("%s" , msg);
 		
-		
+		pthread_cancel(timeout);
 		
 		if(strcmp(msg,"exit")){
 			printf("you are out of the chat");
@@ -339,7 +358,10 @@ void ListarUsuarios(void){
 
 void Menu(int argc, char *argv[], int sockfd){
 	int opcion;
-	do{
+	
+	do{	
+		pthread_t timeout;
+		pthread_create(&timeout,NULL,timeOut,NULL);	
 		printf("\n  1. Chat");
 		printf("\n  2. Change State");
 		printf("\n  3. Users List");
@@ -357,7 +379,7 @@ void Menu(int argc, char *argv[], int sockfd){
 		break;
 		case 4:Ayuda();
 		break;
-		case 5:printf("\n Hola");
+		case 5:InformacionUsuario();
 		break;
 		}
 	}
