@@ -76,7 +76,7 @@ int sendMsg(int csocket, char *buf, int *len ){
 		
 	}
 	
-	printf("Sent msg '%s' to socket: '%d' ", buf, csocket);
+	printf("Sent msg '%s' to socket: '%d' \n", buf, csocket);
 	fflush(stdout);
 	*len = total;
 	return n == -1?-1:0; //return -1 on fail, 0 on success
@@ -258,7 +258,7 @@ void dcUser(char user[], int fd){
 			pthread_exit(NULL);	
 		}
 		else{
-			printf("Succesfully removed '%s' from server list", user);		
+			printf("Succesfully removed '%s' from server list \n", user);		
 			fflush(stdout);	
 			if (FD_ISSET(fd, &read_fds)){	
 				
@@ -550,18 +550,18 @@ void *connection_handler( void *arg){
 					FD_CLR(sockFD, &master);
 				}
 				else{	
-						
+					printf("Server received '%s'\n", buf);	
 					handleRequest(getProt(buf), buf, sockFD);	
 								
 				}
 			}else{
-				printf("sockfd == listener");
+				printf("sockfd == listener\n");
 				fflush(stdout);
 			}
 		}
 
 		else{
-			printf("FD_ISSET == false");
+			printf("FD_ISSET == false\n");
 			fflush(stdout);
 		}
 	}

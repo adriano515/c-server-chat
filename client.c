@@ -50,8 +50,7 @@ char* scanInput(){
 }
 
 void usrMsg(char msg[]){
-	printf("Sent message: '%s\n'",msg);
-	fflush(stdout);
+		
 }
 
 void CambiarEstado(char *estado, char *actividad){
@@ -68,6 +67,25 @@ void CambiarEstado(char *estado, char *actividad){
 	}
 	
 	return;
+}
+
+void changeStatus(){
+		int opcion;
+		printf("\n  1. Activo");
+		printf("\n  2. Iddle");
+		printf("\n  3. Away");
+		opcion = atoi(scanInput());
+		switch(opcion){
+		case 1 :
+				CambiarEstado("0","Opcion2");
+				return;
+		case 2 :
+				CambiarEstado("1","Opcion2");
+				return;
+		case 3 :
+				CambiarEstado("2","Opcion2");
+				return;
+		}
 }
 
 void *timeOut(){
@@ -249,7 +267,7 @@ void *readServer(void *arg){
 			exit(1);
 		}
 		else if(nbytes == 0){
-			perror ("Remote host closed connection");
+			//perror ("Remote host closed connection");
 		}
 		else{
 			printf("Recived message '%s'\n", recvBuff);		
@@ -263,14 +281,17 @@ void *readServer(void *arg){
 
 
 int cliente(int argc, char *argv[]){
-	char msg[1024] = "08|";
-	strcat(msg, user);
-	strcat(msg, "|");
+	char msg[1024];
 	char *msg2;
 	int test;
 	int msglen;
     while(1){
-			
+		
+		memset(msg, 0, sizeof msg);
+		memset(msg2, 0, sizeof msg2);	
+		strcat(msg, "08|");			
+		strcat(msg, user);
+		strcat(msg, "|");
 		//cambiar estado a activo
 		CambiarEstado("0","Activo");
 		char *userToSend;
@@ -363,7 +384,7 @@ void Menu(int argc, char *argv[]){
 	switch(opcion){
 		case 1:cliente(argc,argv);
 		break;
-		case 2:printf("\n  funcion2\n");
+		case 2:changeStatus();
 		break;
 		case 3:ListarUsuarios();
 		break;
