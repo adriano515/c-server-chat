@@ -13,8 +13,24 @@
 
 int sockfd = 0;
 char s[INET_ADDRSTRLEN];
-char user[30];
+char *user;
 
+
+
+char* scanInput(){
+	
+	char *name = malloc(1024);
+	if (name == NULL){
+		printf("No memory\n");
+		return;
+	}
+	fgets(name, 1024, stdin);
+	
+	if((strlen(name) > 0) && (name[strlen (name) - 1] == '\n'))
+		name[strlen (name) - 1] = '\0';
+	return name;
+	
+}
 
 void usrMsg(char msg[]){
 	
@@ -54,7 +70,7 @@ void InformacionUsuario(){
 	int msglen;
 	char *userInformation;
 	printf("Insert user to ask information");
-	scanf("\%s",&userInformation);
+	userInformation = scanInput();	
 	msg = "04|";
 	strcat(msg,userInformation);
 	strcat(msg,"|");
@@ -235,60 +251,9 @@ int sendMsg(int csocket, char *buf, int *len){
 }
 
 int cliente(int argc, char *argv[]){
-	int status = 0, msglen;
-    char recvBuff[1024] = " ";
-    char *msg;
-    
-    struct addrinfo serverinfo, *result, *p;
-	
-    if(argc != 3)
-    {
-        printf("\n Usage: %s <ip of server> <port of server>\n",argv[0]);
-        return 1;
-    } 
-
-    memset(&serverinfo, 0, sizeof serverinfo);
-    serverinfo.ai_family = AF_INET;
-    serverinfo.ai_socktype = SOCK_STREAM;
-
-    if(status = getaddrinfo(argv[1], argv[2], &serverinfo, &result) != 0){
-    	fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
-        return 1;
-    }
-
-    for (p = result; p != NULL; p = p->ai_next){
-
-	    if((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
-	    {
-		perror("\n Error : Could not create socket \n");
-		continue;
-	    } 
-
-	    if( connect(sockfd, p->ai_addr, p->ai_addrlen) == -1)
-	    {
-	       close(sockfd);
-	       printf("\n Error : Connect Failed \n");
-	       continue;
-	    } 
-	    break;
-    }
-    if (p == NULL){
-    	fprintf(stderr, "client: failed to connect\n");
-        return 2;
-    }
-	freeaddrinfo(result);  
-	struct sockaddr_in *ipv4 = (struct sockaddr_in *)p;
-
-	inet_ntop(p->ai_family, &(ipv4->sin_addr), s, sizeof s);
-
-
-	msg = "00|YonyB|192.168.5.212|1100|2";
-	msglen = strlen(msg);
-    if( sendMsg(sockfd, msg, &msglen) == -1){
-    	perror("send");
-		printf("Only %d bytes were sent due to error \n", msglen);							 
-	}
-	
+	char *msg;
+	char recvBuff[1024] = " ";
+	int msglen;
     while(1){
 		memset(recvBuff, 0, sizeof recvBuff);
 	    
@@ -305,13 +270,13 @@ int cliente(int argc, char *argv[]){
 		//cambiar estado a activo
 		char *userToSend;
 		printf("Enter user to send message : ");
-	    	scanf("%s" , userToSend);
+	    userToSend = scanInput();
 	    	
 		pthread_t timeout;
 		pthread_create(&timeout,NULL,timeOut,NULL);
 
 		printf("Enter message : ");
-	    	scanf("%s" , msg);
+	    msg = scanInput();
 		
 		pthread_cancel(timeout);
 		
@@ -356,7 +321,7 @@ void ListarUsuarios(void){
 	return;
 }
 
-void Menu(int argc, char *argv[], int sockfd){
+void Menu(int argc, char *argv[]){
 	int opcion;
 	
 	do{	
@@ -384,7 +349,7 @@ void Menu(int argc, char *argv[], int sockfd){
 		}
 	}
 	while(opcion!=6);
-	char *msg;
+	char msg[1024];
 	int msglen;
 	msg = "02|";
 	strcat(msg,user);
@@ -396,11 +361,70 @@ void Menu(int argc, char *argv[], int sockfd){
 }
 
 int main(int argc, char*argv[]){
+	
+	int status = 0, msglen;
+    
+    char msg[1024];
+	
 	printf("Insert user: ");
-	scanf("\%s",&user);
-	//enviar sockfd
-	int sockfd=0;
-	Menu(argc,argv,sockfd);
+	user = scanInput();
+    
+	
+    struct addrinfo serverinfo, *result, *p;
+	
+    if(argc != 3)
+    {
+        printf("\n Usage: %s <ip of server> <port of server>\n",argv[0]);
+        return 1;
+    } 
+    memset(&serverinfo, 0, sizeof serverinfo);
+    serverinfo.ai_family = AF_INET;
+    serverinfo.ai_socktype = SOCK_STREAM;
+	
+    if(status = getaddrinfo(argv[1], argv[2], &serverinfo, &result) != 0){
+		 
+    	fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(status));
+        return 1;
+    }
+	
+    for (p = result; p != NULL; p = p->ai_next){
+		
+	    if((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1)
+	    {
+			perror("\n Error : Could not create socket \n");
+		continue;
+	    } 
+
+	    if( connect(sockfd, p->ai_addr, p->ai_addrlen) == -1)
+	    {
+	       close(sockfd);
+	       printf("\n Error : Connect Failed \n");
+	       continue;
+	    } 
+	    break;
+    }
+	
+    if (p == NULL){
+    	fprintf(stderr, "client: failed to connect\n");
+        return 2;
+    }
+	
+	freeaddrinfo(result);  
+	struct sockaddr_in *ipv4 = (struct sockaddr_in *)p;
+
+	inet_ntop(p->ai_family, &(ipv4->sin_addr), s, sizeof s);
+	
+	strcat(msg, "00|");
+	strcat(msg, user);
+	strcat(msg, "|192.168.0.1|1100|2");
+	
+	msglen = strlen(msg);
+    if( sendMsg(sockfd, msg, &msglen) == -1){
+    	perror("send");
+		printf("Only %d bytes were sent due to error \n", msglen);							 
+	}	
+
+	Menu(argc,argv);
 	return 0;
 }
 

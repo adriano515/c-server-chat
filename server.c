@@ -130,10 +130,12 @@ void errorReg(char user[], char ip[INET_ADDRSTRLEN], int fd){
 	return;
 }
 
-void getUsrInfo(char user[], char usrAsk[]){
+void getUsrInfo(char user[], char usrAsk[], int fd){
+	
 	data_struct_t* value;
 	value = malloc(sizeof(data_struct_t));
 	client *cl = malloc(sizeof(client));
+
 	if(hashmap_get(map, user, (void**)(&value)) == 0 ){
 		char msg[1024] = "05|";
 		strcat(msg, cl->user);
@@ -216,9 +218,11 @@ void changeStat(char user[], int status){
 	client *cl = malloc(sizeof(client));
 
 	if(hashmap_get(map, user, (void**)(&value)) == 0 ){
-		cl = value->client;		
+		printf("Changing status of '%s' from '%d' to  '%d' \n", user, ((client*)(value->client))->status, status);
+		/*cl = value->client;		
 		cl->status = status;
-
+		value->client = cl;*/
+		((client*)(value->client))->status = status;	
 		printf("User '%s' changed status '%d' to  '%d' \n", user, cl->status, status);	
 		fflush(stdout);
 	}
@@ -445,14 +449,7 @@ void handleRequest(int protocol, char msge[], int fd){
 			[Retorno de informacion {servidor a cliente}]
 				05|usuario|direccionIP|puerto|status¬
 			*/
-			i = 0;
-			char *params5[4]; 
-			while ((token = strtok(NULL, delim)) != NULL){
-				
-				params5[i] = token;
-				i ++;
-			}
-			getUsrInfo(params4[0], params4[1],fd);
+			
 			return;
 		case 6 :
 			/*
