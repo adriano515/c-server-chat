@@ -223,7 +223,7 @@ void changeStat(char user[], int status){
 		cl->status = status;
 		value->client = cl;*/
 		((client*)(value->client))->status = status;	
-		printf("User '%s' changed status '%d' to  '%d' \n", user, cl->status, status);	
+		printf("User '%s' changed status to  '%d' \n", user, status);	
 		fflush(stdout);
 	}
 	else{

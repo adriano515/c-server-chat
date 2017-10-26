@@ -37,21 +37,23 @@ void usrMsg(char msg[]){
 }
 
 void CambiarEstado(char *estado, char *actividad){
-	char *msg;
+	
+	char msg[1024] = "03|";
 	int msglen;
-	msg = "03|";
 	strcat(msg,user);
 	strcat(msg,"|");
 	strcat(msg,estado);
 	msglen = strlen(msg);
 	if( sendMsg(sockfd, msg, &msglen) == -1){
 		printf("Error %s", actividad);
-		perror("Error");					 
+		perror("Error");				 
 	}
+	
 	return;
 }
 
 void *timeOut(){
+	
 	clock_t t,ts;
 	int seconds =0;
 	for(;;){
@@ -62,16 +64,16 @@ void *timeOut(){
 			}		
 		}
 	}
+	
 	return;
 }
 
 void InformacionUsuario(){
-	char *msg;
+	char msg[1024] = "04|";
 	int msglen;
 	char *userInformation;
 	printf("Insert user to ask information");
-	userInformation = scanInput();	
-	msg = "04|";
+	userInformation = 
 	strcat(msg,userInformation);
 	strcat(msg,"|");
 	strcat(msg,user);
@@ -218,9 +220,6 @@ void *readServer(void *arg){
  	int nbytes = 0;
 	int protocol;
 
-		
-	printf("client: connecting to %s\n",s);
-
 	while(1){
 		
 		if( nbytes = recv(sockfd, recvBuff, sizeof(recvBuff)-1, 0) == -1){
@@ -270,7 +269,8 @@ int cliente(int argc, char *argv[]){
 		//cambiar estado a activo
 		char *userToSend;
 		printf("Enter user to send message : ");
-	    userToSend = scanInput();
+		scanf("%s", userToSend);
+	   
 	    	
 		pthread_t timeout;
 		pthread_create(&timeout,NULL,timeOut,NULL);
@@ -325,8 +325,7 @@ void Menu(int argc, char *argv[]){
 	int opcion;
 	
 	do{	
-		pthread_t timeout;
-		pthread_create(&timeout,NULL,timeOut,NULL);	
+		
 		printf("\n  1. Chat");
 		printf("\n  2. Change State");
 		printf("\n  3. Users List");
@@ -349,9 +348,8 @@ void Menu(int argc, char *argv[]){
 		}
 	}
 	while(opcion!=6);
-	char msg[1024];
+	char msg[1024] = "02|";
 	int msglen;
-	msg = "02|";
 	strcat(msg,user);
 	msglen = strlen(msg);
 	if( sendMsg(sockfd, msg, &msglen) == -1){
@@ -364,7 +362,7 @@ int main(int argc, char*argv[]){
 	
 	int status = 0, msglen;
     
-    char msg[1024];
+    char msg[1024] = "00|";
 	
 	printf("Insert user: ");
 	user = scanInput();
@@ -413,8 +411,8 @@ int main(int argc, char*argv[]){
 	struct sockaddr_in *ipv4 = (struct sockaddr_in *)p;
 
 	inet_ntop(p->ai_family, &(ipv4->sin_addr), s, sizeof s);
+	printf("client: connecting to %s\n",s);
 	
-	strcat(msg, "00|");
 	strcat(msg, user);
 	strcat(msg, "|192.168.0.1|1100|2");
 	
