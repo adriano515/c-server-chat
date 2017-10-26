@@ -60,8 +60,8 @@ int sendMsg(int csocket, char *buf, int *len ){
 	int n;
 	while (total < *len) {
 		
-		if (FD_ISSET(csocket, &master)){
-			if (csocket != listener && csocket != 1){
+		//if (FD_ISSET(csocket, &master)){
+		//	if (csocket != listener && csocket != 1){
 				n = send(csocket, buf + total, bytesleft, 0);
 				if (n == -1) {
 					perror("send");
@@ -70,12 +70,14 @@ int sendMsg(int csocket, char *buf, int *len ){
 				total += n;
 				bytesleft -= n;
 
-			}
-		}
+		//	}
+	//	}
 
 		
 	}
 	
+	printf("Sent msg '%s' to socket: '%d' ", buf, csocket);
+	fflush(stdout);
 	*len = total;
 	return n == -1?-1:0; //return -1 on fail, 0 on success
 }
@@ -135,8 +137,11 @@ void getUsrInfo(char user[], char usrAsk[], int fd){
 	data_struct_t* value;
 	value = malloc(sizeof(data_struct_t));
 	client *cl = malloc(sizeof(client));
-
-	if(hashmap_get(map, user, (void**)(&value)) == 0 ){
+	
+	if(hashmap_get(map, usrAsk, (void**)(&value)) == 0 ){
+		printf("Resolving request of '%s' to get info from '%s'\n", user, usrAsk);
+		fflush(stdout);		
+		cl = value->client;
 		char msg[1024] = "05|";
 		strcat(msg, cl->user);
 		strcat(msg, "|");
@@ -441,7 +446,8 @@ void handleRequest(int protocol, char msge[], int fd){
 				params4[i] = token;
 				i ++;
 			}
-			printf("Message received on protocol 04");
+			printf("Message received from '%s' get '%s'\n",params4[0], params4[1]);
+			fflush(stdout);
 			getUsrInfo(params4[0], params4[1],fd);
 			return;
 		case 5 :

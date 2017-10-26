@@ -15,6 +15,23 @@ int sockfd = 0;
 char s[INET_ADDRSTRLEN];
 char *user;
 
+int sendMsg( char *buf, int *len){
+	int total = 0;
+	int bytesleft = *len;
+	int n;
+	while(total<*len){
+		n = send(sockfd, buf+ total, bytesleft, 0);
+		if(n==-1){
+			printf("Error sending message\n", buf);
+			fflush(stdout);
+			break;		
+		}
+	printf("Sent msg '%s' to server\n", buf);
+	fflush(stdout);
+	*len = total;
+	return n == -1?-1:0;
+	}
+}
 
 
 char* scanInput(){
@@ -33,7 +50,7 @@ char* scanInput(){
 }
 
 void usrMsg(char msg[]){
-	printf(msg);
+	printf("Sent message: '%s\n'",msg);
 	fflush(stdout);
 }
 
@@ -46,8 +63,8 @@ void CambiarEstado(char *estado, char *actividad){
 	strcat(msg,estado);
 	msglen = strlen(msg);
 	if( sendMsg( msg, &msglen) == -1){
-		printf("Error %s", actividad);
-		perror("Error");				 
+		printf("Error %s\n", actividad);
+		perror("Error\n");				 
 	}
 	
 	return;
@@ -76,11 +93,12 @@ void InformacionUsuario(){
 	char msg[1024] = "04|";
 	int msglen;
 	char *userInformation;
-	printf("Insert user to ask information");
+	printf("Insert user to ask information\n");
 	userInformation = scanInput();
 	strcat(msg,userInformation);
 	strcat(msg,"|");
 	strcat(msg,user);
+	
 	msglen = strlen(msg);
 	if( sendMsg( msg, &msglen) == -1){
 		perror("Error in protocol 04 InformacionUsuario");					 
@@ -114,7 +132,7 @@ void handleResponse(int protocol, char msge[]){
 				01|usuario|direccionIP¬
 				implemented in regUser function by calling errorReg function
 			*/
-			printf("There was an error registering you with username: '%s'", token);
+			printf("There was an error registering you with username: '%s'\n", token);
 			
 			return;
 		case 2 :
@@ -154,7 +172,7 @@ void handleResponse(int protocol, char msge[]){
 				params5[i] = token;
 				i ++;
 			}
-			printf("La informacion que solicito sobre '%s' es:  IP->'%s', port->'%s', status->'%s'", params5[0] ,params5[1], params5[2], params5[3]);
+			printf("La informacion que solicito sobre '%s' es:  IP->'%s', port->'%s', status->'%s'\n", params5[0] ,params5[1], params5[2], params5[3]);
 			return;
 		case 6 :
 			/*
@@ -179,7 +197,7 @@ void handleResponse(int protocol, char msge[]){
 				params7[i] = token;
 				i ++;
 			}
-			printf("La lista de usuarios es '%s'", params7[1]);
+			printf("La lista de usuarios es '%s'\n", params7[1]);
 			fflush(stdout);
 			return;
 		case 8:
@@ -234,7 +252,7 @@ void *readServer(void *arg){
 			perror ("Remote host closed connection");
 		}
 		else{
-			printf("Recived message '%s'", recvBuff);		
+			printf("Recived message '%s'\n", recvBuff);		
 		}
 		printf("client:received %s\n", recvBuff);
 		fflush(stdout);
@@ -243,33 +261,20 @@ void *readServer(void *arg){
 	}
 }
 
-int sendMsg( char *buf, int *len){
-	int total = 0;
-	int bytesleft = *len;
-	int n;
-	while(total<*len){
-		n = send(sockfd, buf+ total, bytesleft, 0);
-		if(n==-1){
-			printf("Error sending message", buf);
-			break;		
-		}	
-	*len = total;
-	return n == -1?-1:0;
-	}
-}
 
 int cliente(int argc, char *argv[]){
 	char msg[1024] = "08|";
 	strcat(msg, user);
 	strcat(msg, "|");
 	char *msg2;
-	
+	int test;
 	int msglen;
     while(1){
 			
 		//cambiar estado a activo
+		CambiarEstado("0","Activo");
 		char *userToSend;
-		printf("Enter user to send message : ");
+		printf("Enter user to send message : \n");
 		userToSend = scanInput();
 	   
 	    	strcat(msg, userToSend);
@@ -279,19 +284,19 @@ int cliente(int argc, char *argv[]){
 		pthread_t timeout;
 		pthread_create(&timeout,NULL,timeOut,NULL);
 		
-		fprintf(stdout, "Enter message : ");
+		fprintf(stdout, "Enter message : \n");
 		msg2 = scanInput();
 	    	//scanf("%s", msg);
 	   
 		strcat(msg, msg2);
 				
 		pthread_cancel(timeout);
-		
-		/*if(strcmp(msg,"exit")){
+		//fprintf(test, "%d" ,msg2);
+		if(test == 3){
 			fprintf(stdout, msg);
-			printf("you are out of the chat");
+			printf("you are out of the chat\n");
 			break;
-		}*/
+		}
 		
 	    msglen = strlen(msg);
 	    if( sendMsg(msg, &msglen) == -1){
@@ -306,7 +311,7 @@ int cliente(int argc, char *argv[]){
 }
 
 void Ayuda(void){
-	printf("\n  here is the help");	
+	printf("\n  here is the help\n");	
 	return;
 }
 
@@ -352,13 +357,13 @@ void Menu(int argc, char *argv[]){
 		printf("\n  4. HELP");
 		printf("\n  5. Ask for users information");
 		printf("\n  6. End");
-		printf("\n  Choose an option (1-6)", 162);
+		printf("\n  Choose an option (1-6)");
 		opcion = atoi(scanInput());
 		
 	switch(opcion){
 		case 1:cliente(argc,argv);
 		break;
-		case 2:printf("\n  funcion2");
+		case 2:printf("\n  funcion2\n");
 		break;
 		case 3:ListarUsuarios();
 		break;
@@ -385,10 +390,11 @@ int main(int argc, char*argv[]){
     
     char msg[1024] = "00|";
 	
-	printf("Insert user: ");
+	printf("Insert user: \n");
 	user = scanInput();
-    
-	
+    strcat(msg, user);
+	strcat(msg, "|192.168.0.1|1100|2");
+
     struct addrinfo serverinfo, *result, *p;
 	
     if(argc != 3)
@@ -433,6 +439,11 @@ int main(int argc, char*argv[]){
 
 	inet_ntop(p->ai_family, &(ipv4->sin_addr), s, sizeof s);
 	printf("client: connecting to %s\n",s);
+
+	msglen = strlen(msg);
+	if( sendMsg( msg, &msglen) == -1){
+		perror("Error in send");					 
+	}
 
 	pthread_t read_thread;					
 
